@@ -1,0 +1,71 @@
+#include <Servo.h>
+
+// Pin Configuration
+const int trigPin = 2;
+const int echoPin = 3;
+const int servoPin = 9;
+const int redLED = 4;     // Red LED for "Gate Closed"
+const int greenLED = 5;   // Green LED for "Gate Open"
+
+Servo gateServo;
+
+void setup() {
+  Serial.begin(9600);
+  
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  pinMode(redLED, OUTPUT);
+  pinMode(greenLED, OUTPUT);
+  
+  gateServo.attach(servoPin);
+  gateServo.write(0);  // gate initially closed
+  delay(1000);
+
+  digitalWrite(redLED, HIGH);   // gate closed → red LED ON
+  digitalWrite(greenLED, LOW);  // green LED OFF
+  
+  Serial.println("Smart Gate System Started");
+}
+
+void loop() {
+  // --- Measure distance ---
+  long duration;
+  int distance;
+
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(5);
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+
+  duration = pulseIn(echoPin, HIGH, 30000); // timeout 30ms
+  distance = duration * 0.034 / 2;
+
+  Serial.print("Distance: ");
+  Serial.print(distance);
+  Serial.println(" cm");
+
+  // --- Gate Control ---
+  if (distance > 0 && distance < 10) { // Car detected
+    Serial.println("Car Detected - Opening Gate...");
+    gateServo.write(70);  // Open gate
+    digitalWrite(redLED, LOW);   // Red OFF
+    digitalWrite(greenLED, HIGH); // Green ON
+
+    delay(5000);  // Keep gate open for 5 seconds
+
+    Serial.println("Closing Gate...");
+    gateServo.write(0);  // Close gate
+    digitalWrite(greenLED, LOW);  // Green OFF
+    digitalWrite(redLED, HIGH);   // Red ON
+
+    delay(1000); // Wait a bit before next reading
+  } else {
+    // Keep gate closed and show red LED
+    gateServo.write(0);
+    digitalWrite(greenLED, LOW);
+    digitalWrite(redLED, HIGH);
+  }
+
+  delay(500);
+}
